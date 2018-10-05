@@ -1,0 +1,5 @@
+Độ rộng làn đường: 60-80cm
+Chiều cao biển báo: 28cm
+
+Đặc trưng SIFT không hiệu quả đối với biển báo
+-> Chuyển hướng sử dụng đặc trưng HOG
