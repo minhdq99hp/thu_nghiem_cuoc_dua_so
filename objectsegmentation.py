@@ -4,7 +4,7 @@ import cv2
 from enum import Enum
 
 
-class layer_index(Enum):
+class LayerIndex(Enum):
     FIRST_LAYER = 0
     SECOND_LAYER = 1
     THIRD_LAYER = 2
@@ -24,11 +24,13 @@ class ObjectSegmentationAlgorithm:
         self.depth_frame = None
         self.color_frame = None
 
+        self.depth_ground = None
+
         self.d = 3000
 
-    def load_frames(self, depth_frame, color_frame):
-        self.depth_frame = depth_frame
-        self.color_frame = color_frame
+    def load_frames(self, depth, color):
+        self.depth_frame = depth
+        self.color_frame = color
 
     def compute_histogram_of_depth(self):
         frame_width = self.depth_frame.shape[0]
@@ -269,34 +271,58 @@ class ObjectSegmentationAlgorithm:
 
         return x, y, x2, y2
 
-
-    @staticmethod
-    def get_approximated_depth_value_at_row_col(row, col):
-        center_depth_value = (row + 1718000) / (row - 210)
-        depth_value = center_depth_value + abs(28 / 11 * col - 700) // 1
-
-        return depth_value
-
-    def is_ground(self, depth_roi, row, col):
+    def is_ground(self, row, col):
         offset = 1000
+        return self.depth_ground[row, col] - offset < self.depth_frame[row, col] < self.depth_ground[row, col] + offset
 
-        if self.get_approximated_depth_value_at_row_col(row, col) - offset <= depth_roi[row, col, 0] <= self.get_approximated_depth_value_at_row_col(row, col) + offset:
-            return True
-        return False
+    def remove_ground(self, x, y, w, h):
+        for row in range(y, y+h):
+            for col in range(x, x+w):
+                if self.depth_frame[row, col] != 0:
+                    if self.is_ground(row, col):
+                        self.depth_frame[row, col] = 0
 
-    def remove_ground_depth_roi(self, depth_roi):
-        for row in range(depth_roi.shape[0]):
-            for col in range(depth_roi.shape[1]):
-                if depth_roi[row, col, 0] != 0:
-                    if self.is_ground(depth_roi, row, col):
-                        depth_roi[row, col, 0] = 0
+    # Heuristic
+    def compute_depth_ground(self):
+        depth_ground = np.zeros(self.depth_frame.shape, dtype=np.uint16)
+
+        for row in range(depth_ground.shape[0]):
+            depth_of_center_row = self.get_depth_of_center_row(row)
+
+            for col in range(depth_ground.shape[1]):
+                depth_ground[row, col, 0] = depth_of_center_row + abs(28 / 11 * col - 700) // 1
+
+        self.depth_ground = depth_ground
+
+    # Heuristic
+    def get_depth_of_center_row(self, row):
+        a = 1718000
+        b = -210
+
+        return (row + a)/(row + b)
 
 
-if __name__ == "__main__":
+def test_ground_removal():
+    global objectSegmentation
+
     depth_frame = np.load("data/depth_frame.npy")
     color_frame = np.load("data/color_frame.npy")
 
-    objectSegmentation = ObjectSegmentationAlgorithm()
+    objectSegmentation.load_frames(depth_frame, color_frame)
+    objectSegmentation.compute_depth_ground()
+    objectSegmentation.remove_ground(0, 0, 520, 420)
+
+    cv2.imshow("depth_frame", depth_frame)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def test_segmentation():
+    global objectSegmentation
+
+    depth_frame = np.load("data/depth_frame.npy")
+    color_frame = np.load("data/color_frame.npy")
 
     objectSegmentation.run()
 
@@ -306,5 +332,13 @@ if __name__ == "__main__":
 
     objectSegmentation.show_histogram_of_depth_points(objectSegmentation.get_global_peaks())
 
+    cv2.destroyAllWindows()
 
-cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    objectSegmentation = ObjectSegmentationAlgorithm()
+
+    test_ground_removal()
+    # test_segmentation()
+
+

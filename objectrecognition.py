@@ -33,3 +33,13 @@ class SIFT:
         img3 = cv2.drawMatchesKnn(self.img1, self.kp1, self.img2, self.kp2, self.good, None, flags=2)
 
         return img3
+
+
+class HOG:
+    def __init__(self):
+        self.hog = cv2.HOGDescriptor()
+        return
+
+    def get_hog_from_image(self, image):
+
+        return self.hog.compute(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
