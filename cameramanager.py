@@ -144,6 +144,8 @@ if __name__ == '__main__':
 	cv2.namedWindow("color_image")
 	cv2.setMouseCallback("color_image", click_and_crop)
 
+	gotData = False
+
 	while True:
 		if test_camera:
 			cam.compute_depth_frame()
@@ -158,6 +160,24 @@ if __name__ == '__main__':
 		if flag:
 			print("Position: ({x}, {y}) - Depth: {d}".format(x=mouse_x, y=mouse_y, d=depth_frame[mouse_y, mouse_x, 0]))
 			flag = False
+
+		cv2.line(color_frame, (275, 210), (275, 419), (0, 0, 255), 2)
+
+		# LAY GROUND_DATA, CHI CHAY 1 LAN
+		# if not gotData:
+		# 	data = open("data.txt", 'w')
+		# 	x_data = []
+		# 	y_data = []
+		# 	for row in range(210, 419):
+		# 		if depth_frame[row, 275] != 0:
+		# 			x_data.append(row)
+		# 			y_data.append(depth_frame[row, 275, 0])
+		#
+		# 	data.write(' '.join(str(x) for x in x_data) + '\n' + ' '.join(str(y) for y in y_data))
+		#
+		# 	data.close()
+		# 	gotData = True
+
 
 		cv2.imshow("depth_image", depth_frame)
 		cv2.imshow("color_image", color_frame)

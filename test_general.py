@@ -1,9 +1,13 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy.optimize import curve_fit
+diff_up = a - up
+diff_down = a - down
 
-xdata_1 = np.array([420, 367, 348, 332, 315, 296, 295]) * 10**-2
-ydata_1 = np.array([8215, 11048, 12321, 14334, 16714, 20161, 20647]) *10**-2
+diff_up[diff_up >= 0] = 1
+diff_up[diff_up < 0] = 0
 
-print(xdata_1)
-print(ydata_1)
+diff_down[diff_down <= 0] = -2
+diff_down[diff_down > 0] = 0
+diff_down[diff_down == -2] = 1
+
+
+print((diff_up + diff_down) * a)
+

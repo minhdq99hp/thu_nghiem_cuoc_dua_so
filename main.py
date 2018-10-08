@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from cameramanager import CameraManager
 from test import Tester
-from objectsegmentation import ObjectSegmentationAlgorithm, layer_index
+from objectsegmentation import ObjectSegmentationAlgorithm, LayerIndex
 from objectrecognition import SIFT
 import time
 import timeit
@@ -46,10 +46,6 @@ if __name__ == "__main__":
 
 	objectSegmentation = ObjectSegmentationAlgorithm()
 
-	sift = SIFT()
-
-	sift_test = cv2.imread("data/sift_test.jpg", 0)
-
 	# Settings
 	run_only_once = False
 
@@ -62,13 +58,19 @@ if __name__ == "__main__":
 			cam.depth_frame = cam.get_current_cropped_depth_frame()
 			cam.color_frame = cam.get_current_cropped_color_frame()
 
-		cam.compute_rois()
+		cam.compute_rois() # compute left_roi, right_roi, main_roi
 
 		# PROCESS DATA
+
+		origin_depth_frame = cam.depth_frame.copy()
 
 		# UPPER THRESHOLD
 		objectSegmentation.upper_threshold(cam.depth_left_roi, 20000)
 		objectSegmentation.upper_threshold(cam.depth_right_roi, 20000)
+
+		# REMOVE GROUND
+		objectSegmentation.load_frames(cam.depth_frame, cam.color_frame)
+		objectSegmentation.remove_ground_2(0, 211, 549, 419)
 
 		# TRAFFIC SIGNS LOCALIZATION
 		# objectSegmentation.find_contours(depth_left_roi)
@@ -76,62 +78,31 @@ if __name__ == "__main__":
 		# x, y, x2, y2 = objectSegmentation.get_bounding_box_coordinate(cam.depth_left_roi)
 		# cv2.rectangle(cam.color_left_roi, (x, y), (x2, y2), (0, 255, 0), 2)
 
+		# TEST RUNTIME BLOCK
 		# start = timeit.default_timer()
-		#
-		#
 		# stop = timeit.default_timer()
-		#
 		# tester.print_interval(start, stop)
 
 		color_road_region = get_color_road_region(cam.color_frame)
 		depth_road_region = get_depth_road_region(cam.depth_frame)
 
-		# objectSegmentation.load_frames(depth_frame=depth_road_region, color_frame=color_road_region)
-		# objectSegmentation.load_frames(depth_frame=depth_frame, color_frame=color_frame)
-		# objectSegmentation.run()
-
-		# objectSegmentation.remove_ground_depth_roi(depth_main_roi)
-
-		# color_object_frame = objectSegmentation.get_color_region(layer_index.FIRST_LAYER)
-		# depth_object_frame = objectSegmentation.get_depth_region(layer_index.FIRST_LAYER)
-
-		# depth_frame = objectSegmentation.get_removed_ground_depth_frame(depth_frame)
-
-		# objectSegmentation.run(depth_frame=depth_frame, color_frame=color_frame)
-		#
-		# objectSegmentation.show_layer(depth_frame, color_frame, 0)
-
-
-
 
 		# DRAWING
-
 		cv2.line(color_road_region, (549, 133), (346, 0), (255, 0, 0), 3)
 		cv2.line(color_road_region, (0, 133), (204, 0), (255, 0, 0), 3)
-		#
-		# cv2.rectangle(color_frame, (10, 210), (540, 419), (0, 255, 0), 2)
-		# cv2.rectangle(color_frame, (10, 10), (260, 209), (0, 255, 0), 2)
-		# cv2.rectangle(color_frame, (539, 10), (290, 209), (0, 255, 0), 2)
-		# #
-		cv2.rectangle(cam.depth_frame[:, :, 0], (539, 10), (290, 209), (65535), 2)
-		cv2.rectangle(cam.depth_frame[:, :, 0], (10, 10), (260, 209), (65535), 2)
-		cv2.rectangle(cam.depth_frame[:, :, 0], (10, 210), (540, 419), (65535), 2)
+
+		cv2.rectangle(cam.color_frame, (10, 210), (540, 419), (0, 255, 0), 2) # main_roi
+		cv2.rectangle(cam.color_frame, (10, 10), (260, 209), (0, 255, 0), 2) # left_roi
+		cv2.rectangle(cam.color_frame, (539, 10), (290, 209), (0, 255, 0), 2) # right_roi
+
+		cv2.rectangle(cam.depth_frame[:, :, 0], (539, 10), (290, 209), 65535, 2)
+		cv2.rectangle(cam.depth_frame[:, :, 0], (10, 10), (260, 209), 65535, 2)
+		cv2.rectangle(cam.depth_frame[:, :, 0], (10, 210), (540, 419), 65535, 2)
+
 		# SHOWING
-
+		# cv2.imshow("origin_depth_frame", origin_depth_frame)
 		cv2.imshow("color_image", cam.color_frame)
-		# cv2.imshow("depth_main_roi", depth_main_roi)
-
-		# cv2.imshow("color_left_roi", color_left_roi)
-		# cv2.imshow("color_right_roi", color_right_roi)
-
-		# cv2.imshow("depth_left_roi", depth_left_roi)
 		cv2.imshow("depth_image", cam.depth_frame)
-		# cv2.imshow("color_road_region", color_road_region)
-		# cv2.imshow("depth_road_region", depth_road_region)
-
-		# SIFT
-		# sift.run(sift_test, cam.color_left_roi)
-		# cv2.imshow("SIFT", sift.get_result_image())
 
 		if run_only_once:
 			cv2.waitKey(0)

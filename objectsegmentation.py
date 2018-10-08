@@ -24,7 +24,12 @@ class ObjectSegmentationAlgorithm:
         self.depth_frame = None
         self.color_frame = None
 
-        self.depth_ground = None
+        self.ground_offset = 3000
+        self.depth_ground = np.load('data/depth_ground_data.npy')
+
+        # BUG: Overflow and Underflow occured here ! Because the data type is np.uint16
+        self.upper_depth_ground = self.depth_ground.astype(np.int) + self.ground_offset
+        self.lower_depth_ground = self.depth_ground.astype(np.int) - self.ground_offset
 
         self.d = 3000
 
@@ -272,21 +277,38 @@ class ObjectSegmentationAlgorithm:
         return x, y, x2, y2
 
     def is_ground(self, row, col):
-        offset = 1000
-        return self.depth_ground[row, col] - offset < self.depth_frame[row, col] < self.depth_ground[row, col] + offset
+        return self.depth_ground[row, col] - self.ground_offset < self.depth_frame[row, col] < self.depth_ground[row, col] + self.ground_offset
 
-    def remove_ground(self, x, y, w, h):
-        for row in range(y, y+h):
-            for col in range(x, x+w):
-                if self.depth_frame[row, col] != 0:
+    def remove_ground(self, x, y, x2, y2):
+        for row in range(y, y2+1):
+            for col in range(x, x2+1):
+                if self.depth_frame[row, col, 0] != 0:
                     if self.is_ground(row, col):
-                        self.depth_frame[row, col] = 0
+                        self.depth_frame[row, col, 0] = 0
+
+    def remove_ground_2(self, x, y, x2, y2):
+        roi = self.depth_frame[y:y2+1, x:x2+1, 0]
+
+        # Create masks
+        diff_up = roi - self.upper_depth_ground[y:y2+1, x:x2+1, 0]
+        diff_down = roi - self.lower_depth_ground[y:y2+1, x:x2+1, 0]
+
+        diff_up[diff_up >= 0] = 1
+        diff_up[diff_up < 0] = 0
+
+        diff_down[diff_down <= 0] = -2 # set to a value != 1 to avoid the effect of the next step
+        diff_down[diff_down > 0] = 0
+        diff_down[diff_down == -2] = 1
+
+        self.depth_frame[y:y2 + 1, x:x2 + 1, 0] = roi * (diff_up + diff_down)
+
 
     # Heuristic
     def compute_depth_ground(self):
         depth_ground = np.zeros(self.depth_frame.shape, dtype=np.uint16)
 
-        for row in range(depth_ground.shape[0]):
+        # for row in range(depth_ground.shape[0]):
+        for row in range(211, depth_ground.shape[0]):
             depth_of_center_row = self.get_depth_of_center_row(row)
 
             for col in range(depth_ground.shape[1]):
@@ -294,25 +316,35 @@ class ObjectSegmentationAlgorithm:
 
         self.depth_ground = depth_ground
 
+        # np.save('data/depth_ground_data.npy', depth_ground)
+
     # Heuristic
     def get_depth_of_center_row(self, row):
-        a = 1718000
-        b = -210
+        # The value of these local variables is got from test_ground/fit_curve_based_on_ground_data
+        a = 1.94926806e+06
+        b = -1.90139644e+02
 
-        return (row + a)/(row + b)
+        result = (row + a)/(row + b)
+
+        if result > 65535:
+            result = 65535
+        return np.uint16(result)
 
 
 def test_ground_removal():
     global objectSegmentation
 
-    depth_frame = np.load("data/depth_frame.npy")
-    color_frame = np.load("data/color_frame.npy")
+    depth_frame = np.load("data/2018-10-08-11-01-49_depth_frame.npy")
+    color_frame = np.load("data/2018-10-08-11-01-49_color_frame.npy")
 
     objectSegmentation.load_frames(depth_frame, color_frame)
-    objectSegmentation.compute_depth_ground()
-    objectSegmentation.remove_ground(0, 0, 520, 420)
+    # objectSegmentation.compute_depth_ground()
+    objectSegmentation.remove_ground_2(0, 211, 549, 419)
 
-    cv2.imshow("depth_frame", depth_frame)
+    cv2.imshow("depth_frame", objectSegmentation.depth_frame)
+
+    depth_frame = np.load("data/2018-10-08-11-01-49_depth_frame.npy")
+    cv2.imshow("origin_depth_frame", depth_frame)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
