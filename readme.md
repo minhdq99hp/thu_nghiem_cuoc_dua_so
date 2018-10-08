@@ -28,7 +28,7 @@ Có 3 regions:
 - right_roi: vùng có khả năng xuất hiện biển báo ở bên phải
 - main_roi: vùng chứa đường và làn đường, có khả năng xuất hiện các vật thể cản trở.
 
-![]('data/demo_1.png')
+![]('/data/demo_1.png')
 
 
 
