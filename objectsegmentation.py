@@ -276,16 +276,6 @@ class ObjectSegmentationAlgorithm:
 
         return x, y, x2, y2
 
-    def is_ground(self, row, col):
-        return self.depth_ground[row, col] - self.ground_offset < self.depth_frame[row, col] < self.depth_ground[row, col] + self.ground_offset
-
-    def remove_ground(self, x, y, x2, y2):
-        for row in range(y, y2+1):
-            for col in range(x, x2+1):
-                if self.depth_frame[row, col, 0] != 0:
-                    if self.is_ground(row, col):
-                        self.depth_frame[row, col, 0] = 0
-
     def remove_ground_2(self, x, y, x2, y2):
         roi = self.depth_frame[y:y2+1, x:x2+1, 0]
 
