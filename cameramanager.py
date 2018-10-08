@@ -178,7 +178,6 @@ if __name__ == '__main__':
 		# 	data.close()
 		# 	gotData = True
 
-
 		cv2.imshow("depth_image", depth_frame)
 		cv2.imshow("color_image", color_frame)
 
