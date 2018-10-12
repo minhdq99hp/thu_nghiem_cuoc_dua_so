@@ -60,6 +60,7 @@ class CameraManager:
 		img = np.swapaxes(img, 0, 2)
 		img = np.swapaxes(img, 0, 1)
 
+		# size = (480, 640, 1)
 		self.depth_frame = img
 
 	def get_current_cropped_depth_frame(self):
@@ -78,6 +79,7 @@ class CameraManager:
 		rgb = (r[..., np.newaxis], g[..., np.newaxis], b[..., np.newaxis])
 		img = np.concatenate(rgb, axis=-1)
 
+		# size = (480, 640, 3)
 		self.color_frame = img
 
 	def get_current_color_frame(self):

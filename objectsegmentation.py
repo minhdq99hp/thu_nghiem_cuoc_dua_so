@@ -90,7 +90,7 @@ class ObjectSegmentationAlgorithm:
         return peaks
 
     def compute_local_peaks(self):
-        self.local_peaks = self.compute_peaks(self.valid_points);
+        self.local_peaks = self.compute_peaks(self.valid_points)
 
     def get_local_peaks(self):
         return self.local_peaks
@@ -204,7 +204,7 @@ class ObjectSegmentationAlgorithm:
     def upper_threshold(self, roi, value):
         roi[roi>value] = 0
 
-    def find_contours(self, roi):
+    def find_depth_contours(self, roi):
 
         img = (roi / 65535 * 255) // 1
 
@@ -222,61 +222,53 @@ class ObjectSegmentationAlgorithm:
         cv2.imshow("r", img)
 
         return contours
+    
+    def compute_bounding_box_coordinate(self, roi):
+        x = 0
+        y = 0
+        x2 = roi.shape[1] - 1
+        y2 = roi.shape[0] - 1
+
+        found = False
+
+        while x < roi.shape[1] and y < roi.shape[0]:
+            # check row y
+            # check col x
+            res_y = True if np.sum(roi[y, :, 0] != 0) else False
+            res_x = True if np.sum(roi[:, x, 0] != 0) else False
+
+            if res_x and not res_y:
+                y += 1
+            elif not res_x and res_y:
+                x += 1
+            elif not res_x and not res_y:
+                x += 1
+                y += 1
+            else:
+                found = True
+                break
+
+        while x2 > -1 and y2 > -1:
+            res_y = True if np.sum(roi[y2, :, 0]) != 0 else False
+            res_x = True if np.sum(roi[:, x2, 0]) != 0 else False
+
+            if res_x and not res_y:
+                y2 -= 1
+            elif not res_x and res_y:
+                x2 -= 1
+            elif not res_x and not res_y:
+                x2 -= 1
+                y2 -= 1
+            else:
+                found = found and True
+                break
+
+        return found, x, y, x2, y2
 
     def get_bounding_box_coordinate(self, roi):
-        x = None
-        y = None
-        x2 = None
-        y2 = None
+        return self.compute_bounding_box_coordinate(roi)
 
-        # Find Y
-        for row in range(roi.shape[0]):
-            found_y = False
-            for col in range(roi.shape[1]):
-                if roi[row, col, 0] != 0:
-                    y = col
-                    found_y = True
-                    break
-
-            if found_y:
-                break
-
-        # Find X
-        for col in range(roi.shape[1]):
-            found_x = False
-            for row in range(roi.shape[0]):
-                if roi[row, col, 0] != 0:
-                    x = row
-                    found_x = True
-                    break
-            if found_x:
-                break
-
-        # Find Y2
-        for row in range(roi.shape[0]-1, -1, -1):
-            found_y2 = False
-            for col in range(roi.shape[1]):
-                if roi[row, col, 0] != 0:
-                    y2 = col
-                    found_y2 = True
-                    break
-            if found_y2:
-                break
-
-        # Find X2
-        for col in range(roi.shape[1]-1, -1, -1):
-            found_x2 = False
-            for row in range(roi.shape[0]):
-                if roi[row, col, 0] != 0:
-                    x2 = row
-                    found_x2 = True
-                    break
-            if found_x2:
-                break
-
-        return x, y, x2, y2
-
-    def remove_ground_2(self, x, y, x2, y2):
+    def remove_ground(self, x, y, x2, y2):
         roi = self.depth_frame[y:y2+1, x:x2+1, 0]
 
         # Create masks
@@ -329,7 +321,7 @@ def test_ground_removal():
 
     objectSegmentation.load_frames(depth_frame, color_frame)
     # objectSegmentation.compute_depth_ground()
-    objectSegmentation.remove_ground_2(0, 211, 549, 419)
+    objectSegmentation.remove_ground(0, 211, 549, 419)
 
     cv2.imshow("depth_frame", objectSegmentation.depth_frame)
 

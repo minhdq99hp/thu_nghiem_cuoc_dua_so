@@ -1,12 +1,8 @@
 #!/usr/bin/python
 import cv2
-import numpy as np
 from cameramanager import CameraManager
 from test import Tester
-from objectsegmentation import ObjectSegmentationAlgorithm, LayerIndex
-from objectrecognition import SIFT
-import time
-import timeit
+from objectsegmentation import ObjectSegmentationAlgorithm
 
 def get_color_road_region(color_frame):
 	frame_height = color_frame.shape[0]
@@ -70,13 +66,16 @@ if __name__ == "__main__":
 
 		# REMOVE GROUND
 		objectSegmentation.load_frames(cam.depth_frame, cam.color_frame)
-		objectSegmentation.remove_ground_2(0, 211, 549, 419)
+		objectSegmentation.remove_ground(0, 211, 549, 419)
 
 		# TRAFFIC SIGNS LOCALIZATION
-		# objectSegmentation.find_contours(depth_left_roi)
+		found, x, y, x2, y2 = objectSegmentation.get_bounding_box_coordinate(cam.depth_left_roi)
+		if found:
+			cv2.rectangle(cam.color_left_roi, (x, y), (x2, y2), (0, 255, 0), 2)
 
-		# x, y, x2, y2 = objectSegmentation.get_bounding_box_coordinate(cam.depth_left_roi)
-		# cv2.rectangle(cam.color_left_roi, (x, y), (x2, y2), (0, 255, 0), 2)
+		found, x, y, x2, y2 = objectSegmentation.get_bounding_box_coordinate(cam.depth_right_roi)
+		if found:
+			cv2.rectangle(cam.color_right_roi, (x, y), (x2, y2), (0, 255, 0), 2)
 
 		# TEST RUNTIME BLOCK
 		# start = timeit.default_timer()
@@ -91,9 +90,9 @@ if __name__ == "__main__":
 		cv2.line(color_road_region, (549, 133), (346, 0), (255, 0, 0), 3)
 		cv2.line(color_road_region, (0, 133), (204, 0), (255, 0, 0), 3)
 
-		cv2.rectangle(cam.color_frame, (10, 210), (540, 419), (0, 255, 0), 2) # main_roi
-		cv2.rectangle(cam.color_frame, (10, 10), (260, 209), (0, 255, 0), 2) # left_roi
-		cv2.rectangle(cam.color_frame, (539, 10), (290, 209), (0, 255, 0), 2) # right_roi
+		cv2.rectangle(cam.color_frame, (10, 210), (540, 419), (255, 255, 255), 2) # main_roi
+		cv2.rectangle(cam.color_frame, (10, 10), (260, 209), (255, 255, 255), 2) # left_roi
+		cv2.rectangle(cam.color_frame, (539, 10), (290, 209), (255, 255, 255), 2) # right_roi
 
 		cv2.rectangle(cam.depth_frame[:, :, 0], (539, 10), (290, 209), 65535, 2)
 		cv2.rectangle(cam.depth_frame[:, :, 0], (10, 10), (260, 209), 65535, 2)
